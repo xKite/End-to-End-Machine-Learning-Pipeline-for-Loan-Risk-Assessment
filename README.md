@@ -15,8 +15,8 @@ To run this project, ensure you have the following prerequisites installed:
 Follow these steps to set up the project environment:
 
 1. **Clone the Repository**:
-   git clone https://github.com/yourusername/yourproject.git
-   cd yourproject
+   [git clone here](https://github.com/xKite/End-to-End-Machine-Learning-Pipeline-for-Loan-Risk-Assessment)
+   
 2. **Install Required Packages: Use pip to install the necessary libraries.**
 `pip install -r requirements.txt`
 
