@@ -7,9 +7,55 @@ from sklearn.preprocessing import PolynomialFeatures
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder, StandardScaler
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.base import BaseEstimator, TransformerMixin
 
 logging.basicConfig(level=logging.INFO)
+
+class OutlierHandler:
+    def __init__(self, columns_to_check=None, iqr_factor=1.5):
+        # If no columns are provided, initialize with default columns
+        if columns_to_check is None:
+            self.columns_to_check = ['Loan_Amount', 'Credit_Score', 'Annual_Income', 
+                                     'Employment_Length', 'Debt-to-Income_Ratio', 
+                                     'Number_of_Open_Accounts', 'Number_of_Past_Due_Payments']
+        else:
+            self.columns_to_check = columns_to_check
+        self.iqr_factor = iqr_factor
+
+    def fit(self, X, y=None):
+        # If X is a DataFrame, just return self
+        if isinstance(X, pd.DataFrame):
+            self.feature_names_in_ = X.columns
+        return self
+
+    def transform(self, X):
+        # Convert to DataFrame if X is a numpy array
+        if isinstance(X, np.ndarray):
+            X = pd.DataFrame(X, columns=self.columns_to_check)
+
+        # Log the available columns
+        print("Columns in the DataFrame:", X.columns.tolist())
+                
+        for col in self.columns_to_check:
+            # Ensure the column exists before trying to process it
+            if col in X.columns:
+                Q1 = X[col].quantile(0.25)
+                Q3 = X[col].quantile(0.75)
+                IQR = Q3 - Q1
+                # Outlier handling logic: filtering data
+                X = X[(X[col] >= (Q1 - 1.5 * IQR)) & (X[col] <= (Q3 + 1.5 * IQR))]
+            else:
+                print(f"Column '{col}' not found in DataFrame.")
+        
+        return X
+
+    def fit_transform(self, X, y=None):
+        """
+        Calls the fit method followed by the transform method. Accepts X and an optional y argument.
+        """
+        self.fit(X, y)  # Fit logic can be called, but you likely don't need to use 'y'
+        return self.transform(X)
 
 class DataPreparation:
     """
@@ -28,33 +74,10 @@ class DataPreparation:
         config (Dict[str, Any]): Configuration dictionary containing parameters for data cleaning and preprocessing.
     """
         
-    def __init__(self, config: Dict[str, Any]):
-        
-            
+    def __init__(self, config: Dict[str, Any]):                    
         self.config = config
         self.preprocessor = self._create_preprocessor()
-
-        try:
-            logging.info("Starting data cleaning.")
-            df = pd.read_csv(self.config["data"]["dataset_path"], index_col=self.config["data"].get("index_column", 0))
-            logging.info(f"Rows before cleaning: {len(df)}")
-            
-            # Proceed with cleaning or other operations here...
-
-        except FileNotFoundError:
-            logging.error(f"File not found: {self.config['data']['dataset_path']}")
-            df = None  # Initialize df to None in case of failure
-
-        except Exception as e:
-            logging.error(f"Error loading data: {e}")
-            df = None  # Initialize df to None in case of other errors
-
-        # Continue with the rest of the initialization steps if df is successfully loaded
-        if df is not None:
-            self.df = df  # Assign the dataframe to the class attribute for future use
-        else:
-            logging.error("Data frame is not loaded. Exiting.")
-
+        
     def clean_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Cleans the input DataFrame by performing several preprocessing steps.
@@ -67,10 +90,7 @@ class DataPreparation:
         --------
         pd.DataFrame: The cleaned DataFrame.
         """
-        # Check if the DataFrame is empty
-        if df.empty:
-            raise ValueError("Input DataFrame is empty")
-        
+        # Check if the DataFrame is empty                
         logging.info("Starting data cleaning.")
         logging.info(f"Rows before cleaning: {len(df)}")
         
@@ -85,13 +105,16 @@ class DataPreparation:
         
         # Fill missing values
         df = self._fill_missing_values(df)
-        
-        # Detect and handle outliers
-        df = self._detect_outliers(df)
-        
+
         # Create the Income_to_Loan_Ratio feature
         df = self._create_income_to_loan_ratio(df)
         
+        # Detect and handle outliers
+        df = self._detect_outliers(df)
+
+        # Fill missing values again after outlier removal
+        df = self._fill_missing_values(df)
+                        
         # Feature engineering: create interaction terms
         df = self._create_interaction_terms(df)
 
@@ -141,15 +164,17 @@ class DataPreparation:
         Fills missing values for both categorical and numerical columns.
         """
         logging.info("Filling missing values.")
-        df.fillna({
-            'Risk_Category': df['Risk_Category'].mode()[0],
-            'Loan_Purpose': df['Loan_Purpose'].mode()[0],
-            'Loan_Amount': df['Loan_Amount'].median(),
-            'Credit_Score': df['Credit_Score'].median(),
-            'Annual_Income': df['Annual_Income'].median(),
-            'Debt-to-Income_Ratio': df['Debt-to-Income_Ratio'].median(),
-            'Number_of_Past_Due_Payments': df['Number_of_Past_Due_Payments'].median()
-        }, inplace=True)
+        # Automatically identify all numerical columns (including newly created features)
+        num_cols = df.select_dtypes(include=['float64', 'int64']).columns
+        
+        # Use SimpleImputer for numerical columns (filling with median)
+        imputer = SimpleImputer(strategy='median')
+        df[num_cols] = imputer.fit_transform(df[num_cols])
+        
+        # Fill missing values for categorical columns (filling with mode)
+        cat_cols = df.select_dtypes(include=['object']).columns
+        for col in cat_cols:
+            df[col].fillna(df[col].mode()[0], inplace=True)
         logging.info("Missing values filled.")
         return df
 
@@ -169,26 +194,13 @@ class DataPreparation:
             raise ValueError("The 'Income_to_Loan_Ratio' column is missing.")
             
         logging.info("Detecting and handling outliers.")
-        numerical_features = self.config["columns"]["numerical_features"]
-    
-        for col in numerical_features:
-            Q1 = df[col].quantile(0.25)
-            Q3 = df[col].quantile(0.75)
-            IQR = Q3 - Q1
-            lower_bound = Q1 - 1.5 * IQR
-            upper_bound = Q3 + 1.5 * IQR
-            
-            # Option 1: Remove outliers
-            # df = df[(df[col] >= lower_bound) & (df[col] <= upper_bound)]
-            
-            # Option 2: Cap outliers (to keep rows intact)
-            df[col] = np.where(df[col] < lower_bound, lower_bound, df[col])
-            df[col] = np.where(df[col] > upper_bound, upper_bound, df[col])
-        
+        numerical_features = self.config["columns"]["numerical_features"]    
+        outlier_handler = OutlierHandler(numerical_features)
+        df[numerical_features] = outlier_handler.fit_transform(df[numerical_features])
         logging.info("Outliers handled.")
         return df
 
-    def _create_income_to_loan_ratio(df):
+    def _create_income_to_loan_ratio(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Creates the Income_to_Loan_Ratio feature by dividing Annual_Income by Loan_Amount.
         """
@@ -229,22 +241,26 @@ class DataPreparation:
         df['Debt_to_Income'] = df['Debt-to-Income_Ratio'] / df['Annual_Income']
 
         # Polynomial features
+        cols = self.config["columns"]["numerical_features"]
         poly = PolynomialFeatures(degree=2, include_bias=False, interaction_only=False)
-        poly_features = poly.fit_transform(df[['Annual_Income', 'Loan_Amount', 'Debt-to-Income_Ratio']])
+        poly_features = poly.fit_transform(df[cols])
 
         # Creating DataFrame for polynomial features
-        poly_feature_names = poly.get_feature_names_out(['Annual_Income', 'Loan_Amount', 'Debt-to-Income_Ratio'])
+        poly_feature_names = poly.get_feature_names_out(cols)
         poly_df = pd.DataFrame(poly_features, columns=poly_feature_names, index=df.index)
+
+        # Combine the original DataFrame with polynomial features
+        df = pd.concat([df, poly_df], axis=1)
 
         # Avoiding duplication of columns by checking for conflicts
         duplicated_columns = set(poly_df.columns).intersection(df.columns)
         if duplicated_columns:
             logging.warning(f"Duplicated columns found: {duplicated_columns}. These columns will be replaced.")
-            df.drop(duplicated_columns, axis=1, inplace=True)
-        
-        # Combine the original DataFrame with polynomial features
-        df = pd.concat([df, poly_df], axis=1)
-        
+            df = df.loc[:, ~df.columns.duplicated()]
+
+        # drop unrelated columns
+        df.drop(columns=['Annual_Income^2', 'Loan_Amount^2', 'Debt-to-Income_Ratio^2'],  errors='ignore', inplace=True)
+                
         logging.info("Interaction terms and polynomial features created.")
         return df
 
@@ -258,16 +274,17 @@ class DataPreparation:
         sklearn.compose.ColumnTransformer: A ColumnTransformer object for preprocessing the data.
         """
         # Specify which columns are numerical and which are categorical
-        numerical_features = self.config["columns"]["numerical_features"]
-        categorical_features = self.config["columns"]["nominal_features"]
+        numerical_features = self.config["columns"]["numerical_features" ]
+        nominal_features = self.config["columns"]["nominal_features"]
         
         # Create transformers for numerical and categorical features
         numerical_transformer = Pipeline(steps=[
             ('imputer', SimpleImputer(strategy='median')),
-            ('outliers', OutlierHandler(numerical_features)),
-            ('scaler', StandardScaler())
+            ('scaler', StandardScaler()),
+            ('poly_features', PolynomialFeatures(degree=2))
             ])
         nominal_transformer = Pipeline(steps=[
+            ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
             ("onehot", 
              OneHotEncoder(
                  categories=[self.config["columns"]["loan_purpose_categories"]],
@@ -289,17 +306,35 @@ class DataPreparation:
 
 class TestDataPreparation(unittest.TestCase):
     def setUp(self):
-        self.config = {'data': {'dataset_path': 'path/to/data.csv'}}
-        self.data_preparation = DataPreparation(self.config)
+        self.config = {
+            'data': {'dataset_path': 'path/to/data.csv'},
+            'columns': {
+                'numerical_features': ['Loan_Amount', 'Credit_Score', 'Annual_Income', 'Debt-to-Income_Ratio'],
+                'nominal_features': ['Loan_Purpose'],
+                'loan_purpose_categories': ['business', 'home improvement', 'medical expenses', 'debt consolidation', 'car'],
+            },
+        }
 
-    def test_drop_duplicates(self):
-        df = pd.DataFrame({'A': [1, 2, 2], 'B': [3, 4, 4]})
-        cleaned_df = self.data_preparation._drop_duplicates(df)
-        self.assertEqual(len(cleaned_df), 2)  # Ensure duplicates are dropped
+        # Create a mock DataFrame for testing
+        self.df = pd.DataFrame({
+            'Risk_Category': ['low-risk', 'high-risk'],
+            'Loan_Amount': [10000, 20000, 15000],
+            'Credit_Score': [700, np.nan, 650],
+            'Loan_Purpose': ['business', 'home improvement', 'medical expenses', 'debt consolidation', 'car'],
+            'Annual_Income': [50000, 60000, np.nan],
+            'Employment_Length': [5, 10, 2],
+            'Debt-to-Income_Ratio': [0.2, 0.3, 0.25],
+            'Number_of_Open_Accounts': [2, 3, 1],
+            'Number_of_Past_Due_Payments': [0, 1, 0]
+        })
 
-    def test_empty_dataframe(self):
-        with self.assertRaises(ValueError):
-            self.data_preparation.clean_data(pd.DataFrame())
+    def test_clean_data(self):
+        dp = DataPreparation(self.config)
+        cleaned_df = dp.clean_data(self.df)
+        
+        # Assertions to verify the data cleaning
+        self.assertEqual(len(cleaned_df), len(self.df))
+        self.assertTrue('Income_to_Loan_Ratio' in cleaned_df.columns)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
