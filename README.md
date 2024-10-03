@@ -1,4 +1,4 @@
-# HoKwokLeong
+# Ho Kwok Leong
 
 # Project Title: Script-Based-End-to-End-Machine-Learning-Pipeline-for-Loan-Risk-Prediction
 
