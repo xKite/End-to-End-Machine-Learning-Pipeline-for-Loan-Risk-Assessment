@@ -1,6 +1,6 @@
 # Derek Ho
 
-# Script-Based-End-to-End-Machine-Learning-Pipeline-for-Loan-Risk-Prediction 
+# Script-Based-End-to-End-Machine-Learning-Pipeline-for-Loan-Risk-Assessment 
 
 ## Project Description
 This project analyzes a loan dataset to predict the risk category of borrowers based on various financial and personal attributes. By leveraging exploratory data analysis (EDA) and machine learning techniques, the project develops a pipeline for data preprocessing, feature engineering, and model training. The primary goal is to classify loan applicants into 'low-risk' and 'high-risk' categories, enabling financial institutions to make informed lending decisions.
