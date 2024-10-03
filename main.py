@@ -7,7 +7,7 @@ import pandas as pd
 from sklearn.utils._testing import ignore_warnings
 
 # Local application/library specific imports
-from src.features import DataPreparation
+from src.DataPreparation import DataPreparation
 from src.model_experiments import ModelTraining
 
 # Configure logging to output to both console and a log file
