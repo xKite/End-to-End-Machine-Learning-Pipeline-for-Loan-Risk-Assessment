@@ -1,12 +1,12 @@
-# Derek Ho
+# HoKwokLeong-Capstone
 
-# Script-Based-End-to-End-Machine-Learning-Pipeline-for-Loan-Risk-Assessment 
+# Project Title: Predicting Loan Risk Classification
 
 ## Project Description
-This project analyzes a loan dataset to predict the risk category of borrowers based on various financial and personal attributes. By leveraging exploratory data analysis (EDA) and machine learning techniques, the project develops a pipeline for data preprocessing, feature engineering, and model training. The primary goal is to classify loan applicants into 'low-risk' and 'high-risk' categories, enabling financial institutions to make informed lending decisions.
+This project focuses on analyzing a loan dataset to predict the risk category of borrowers based on various financial and personal attributes. By leveraging exploratory data analysis (EDA) and machine learning techniques, the project develops an end-to-end pipeline for data preprocessing, feature engineering, and model training. The primary goal is to classify loan applicants into "low-risk" and "high-risk" categories, helping financial institutions make informed lending decisions.
 
 ## Prerequisites and Installation
-To run this project, ensure you have the following prerequisites installed:
+To run this project, ensure the following prerequisites are met:
 
 - **Python Version**: Python 3.x (preferred version: 3.8 or above)
 - **Required Libraries**: All necessary libraries are listed in the `requirements.txt` file.
@@ -16,7 +16,6 @@ Follow these steps to set up the project environment:
 
 1. **Clone the Repository**:
    [git clone here](https://github.com/xKite/End-to-End-Machine-Learning-Pipeline-for-Loan-Risk-Assessment)
-   
 2. **Install Required Packages: Use pip to install the necessary libraries.**
 `pip install -r requirements.txt`
 
@@ -25,7 +24,8 @@ Follow these steps to set up the project environment:
 To execute the end-to-end machine learning pipeline, follow these steps:
 
 1. **Modify the Configuration**: 
-   - Open the `config.yaml` file in a text editor to adjust any parameters necessary for your specific use case. 
+   - Model selection can be configured based on performance with new data. To modify, go to line 31 in `main.py` and change `default="all"` to the model that performed best on the new data. For example, set `default="decision_tree"` to use the Decision Tree model for your new data. `By default, all three models are used.`
+   - Numerical feature selection can be modified by adding or removing features. To make changes, go to line 41 in `main.py`.
    - Key parameters to modify might include:
      - Data source paths
      - Model hyperparameters (e.g., learning rate, number of trees)
@@ -34,13 +34,11 @@ To execute the end-to-end machine learning pipeline, follow these steps:
 2. **Run the Main Script**: 
    - Execute the main pipeline script to initiate the workflow. This script will automatically handle data loading, processing, training, and evaluation.
 `python main.py`
-3. **Check Output**:
-   - After the script completes, check the output files in the specified output directory (as defined in the config.yaml), which may include model files, logs, and performance metrics.
 
 ## Overview of Key Findings from EDA
 The exploratory data analysis revealed several important patterns and insights that guided the design of the preprocessing pipeline:
 
-- **Data Quality:** The dataset contained missing values in categorical and numerical features, which were addressed using appropriate imputation strategies to ensure data integrity.
+- **Data Quality:** Missing values were found in both categorical and numerical features. Imputation strategies were applied to ensure data integrity.
 
 - **Categorical Imbalances:** Analysis of the 'Risk_Category' showed an imbalance between 'low-risk' and 'high-risk' categories, highlighting the need for careful evaluation during model training to avoid bias.
 
@@ -79,8 +77,8 @@ The features selected for model training included:
 | Debt-to-Income_Ratio         | Median imputation             | Addressed missing values              |
 | Number_of_Open_Accounts       | Median imputation             | Addressed missing values              |
 | Number_of_Past_Due_Payments   | Median imputation             | Addressed missing values              |
-| Risk_Category                 | Mode imputation               | Addressed missing values, also replaced labels |
-| Loan_Purpose                  | One-hot encoding              | Prepared categorical variable for model training |
+| Risk_Category                 | Mode imputation               | Addressed missing values, relabeled |
+| Loan_Purpose                  | One-hot encoding              | Categorical encoding for training |
 
 
 ## Description of Logical Steps/Flow of the Pipeline
@@ -113,12 +111,12 @@ The machine learning pipeline consists of several logical steps, each serving a 
 ## Explanation of Model Choices
 
 ### Logistic Regression
-- **Reason for Choice:** Simple and effective for binary classification tasks. Provides probabilities and interpretable coefficients.
-- **Use Case:** Ideal for linearly separable data.
+- **Reason for Choice:** A straightforward binary classification model that provides interpretable results and is suitable for linearly separable data.
+- **Use Case:** Ideal for explaining relationships between features and the target class.
 
 ### K-Nearest Neighbors (KNN)
-- **Reason for Choice:** Non-parametric and easy to understand. Works well with a smaller number of dimensions.
-- **Use Case:** Effective for instances where similar cases can be clustered together.
+- **Reason for Choice:** A non-parametric, instance-based learning algorithm that works well with smaller datasets.
+- **Use Case:** Effective when similar instances cluster together.
 
 ### Decision Tree
 - **Reason for Choice:** Provides an intuitive representation of decision-making processes. Can capture non-linear relationships well.
@@ -160,10 +158,10 @@ When deploying the models, consider the following:
 
 - **Scalability:** Ensure the model can handle increased loads and larger datasets. Evaluate if you need to implement batch processing or streaming.
 
-- **Real-time Performance:** If the model will serve predictions in real-time, ensure it can provide quick responses under expected operational loads.
+- **Real-time Performance:** Test the model's response times to ensure real-time predictions are feasible.
 
-- **Integration with Other Systems:** Ensure the model can easily integrate with existing systems and databases for seamless operation.
+- **System Integration:** Ensure the model can easily integrate with existing systems and databases for seamless operation.
 
-- **Monitoring and Maintenance:** Establish a monitoring system to track model performance over time and a plan for retraining as new data becomes available.
+- **Monitoring and Maintenance:** Set up monitoring systems to track performance and plan for regular retraining as new data becomes available.
 
 - **Documentation:** Maintain comprehensive documentation of the model's functionality, usage instructions, and any dependencies to facilitate future maintenance and updates.

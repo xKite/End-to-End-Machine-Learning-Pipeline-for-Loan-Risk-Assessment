@@ -1,14 +1,15 @@
 # Standard library imports
 import logging
 import os
+import argparse
 
 # Third-party imports
 import pandas as pd
 from sklearn.utils._testing import ignore_warnings
 
 # Local application/library specific imports
-from src.DataPreparation import DataPreparation
-from src.ModelTraining import ModelTraining
+from src.data_preparation import DataPreparation
+from src.model_training import ModelTraining
 
 # Configure logging to output to both console and a log file
 logging.basicConfig(
@@ -25,6 +26,11 @@ def main():
     """
     Main function to load data, perform data preparation, and handle errors.
     """
+    # Command-line arguments for flexibility
+    parser = argparse.ArgumentParser(description="Run machine learning model training pipeline.")
+    parser.add_argument("--model", type=str, default="all", help="Specify which model to run: 'Logistic Regression', 'knn', 'decision_tree', or 'all'")
+    args = parser.parse_args()
+    
     # Configuration file path
     config = {
         "data": {
@@ -73,19 +79,34 @@ def main():
         # Initialize the model training class
         model_trainer = ModelTraining(config, data_prep.preprocessor)
 
-        # Run baseline model
-        logging.info("Starting baseline model evaluation.")
-        model_trainer.run_baseline(cleaned_df)
+        # Model experimentation based on user input
+        if args.model == 'all' or args.model == 'Logistic Regression':
+            logging.info("Starting logistic model evaluation.")
+            model_trainer.run_baseline(cleaned_df)
+            
+        if args.model == 'all' or args.model == 'knn':
+            logging.info("Starting KNN model evaluation.")
+            model_trainer.run_knn(cleaned_df)
 
-        # Run KNN classifier
-        logging.info("Starting KNN model evaluation.")
-        model_trainer.run_knn(cleaned_df)
-
-        # Run Decision Tree classifier
-        logging.info("Starting Decision Tree model evaluation.")
-        model_trainer.run_decision_tree(cleaned_df)
+        if args.model == 'all' or args.model == 'decision_tree':
+            logging.info("Starting Decision Tree model evaluation.")
+            model_trainer.run_decision_tree(cleaned_df)
 
         logging.info("Model evaluation completed successfully.")
+
+        # Run baseline model
+        # logging.info("Starting baseline model evaluation.")
+        # model_trainer.run_baseline(cleaned_df)
+
+        # Run KNN classifier
+        # logging.info("Starting KNN model evaluation.")
+        # model_trainer.run_knn(cleaned_df)
+
+        # Run Decision Tree classifier
+        # logging.info("Starting Decision Tree model evaluation.")
+        # model_trainer.run_decision_tree(cleaned_df)
+
+        # logging.info("Model evaluation completed successfully.")
 
     except FileNotFoundError:
         logging.error(f"File not found: {dataset_path}")
