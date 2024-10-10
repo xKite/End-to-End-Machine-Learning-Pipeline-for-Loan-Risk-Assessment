@@ -1,6 +1,6 @@
-# HoKwokLeong-Capstone
+# Derek Ho
 
-# Project Title: Predicting Loan Risk Classification
+# Predicting Loan Risk Classification
 
 ## Project Description
 This project focuses on analyzing a loan dataset to predict the risk category of borrowers based on various financial and personal attributes. By leveraging exploratory data analysis (EDA) and machine learning techniques, the project develops an end-to-end pipeline for data preprocessing, feature engineering, and model training. The primary goal is to classify loan applicants into "low-risk" and "high-risk" categories, helping financial institutions make informed lending decisions.
