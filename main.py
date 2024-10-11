@@ -94,20 +94,6 @@ def main():
 
         logging.info("Model evaluation completed successfully.")
 
-        # Run baseline model
-        # logging.info("Starting baseline model evaluation.")
-        # model_trainer.run_baseline(cleaned_df)
-
-        # Run KNN classifier
-        # logging.info("Starting KNN model evaluation.")
-        # model_trainer.run_knn(cleaned_df)
-
-        # Run Decision Tree classifier
-        # logging.info("Starting Decision Tree model evaluation.")
-        # model_trainer.run_decision_tree(cleaned_df)
-
-        # logging.info("Model evaluation completed successfully.")
-
     except FileNotFoundError:
         logging.error(f"File not found: {dataset_path}")
     except pd.errors.EmptyDataError:
